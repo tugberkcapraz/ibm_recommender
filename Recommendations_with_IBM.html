@@ -17694,7 +17694,11 @@ The top 10 recommendations for user <span class="ansi-red-fg"> 20 </span> are th
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<p>For the new users, quick and dirty way solution is to recommend top articles. However, a welcoming page where user picks their topics of interests from the tags pool would be better. From there on, we can recommend top articles within each tag that user picked. That would be a hybrid system of knowledge based and ranking based filtering.</p>
+<p>For the new users, <em>among the recommendation systems above</em>, the only solution is <strong>rank based filtering (get_top_articles function)</strong>. The reason is, as I demonstrated above, when function takes a user_id that is not found in database, it can't create user-to-user recommendations. It's neither a bug nor an arbitrary design choice of mine. Rather, it's caused by the solid fact that user-to-user recommendations requires similarity to be calculated. When there's new user, similarity can't be calculated, thus we can't utilise user-to-user recommendations for them. This is called <strong>cold start problem</strong>.</p>
+<p>In order to improve our recommendations for the new users, my first route would be creating a tag cloud from our article descriptions and ask users to pick at least 3 tags from it. Then I would recommend the top articles within each tag rather than recommending generic top articles. When user interacts with certain amount of articles (~10 articles), I would assign this user to user_user_recs_part2 function</p>
+<p>Tag cloud can be created by hunting the most frequent words(rule based), or can be created by implementing keyword detectors(model based).</p>
+<p>I provide a link for an advanced keyword detector model from huggingface.co</p>
+<p><a href="https://huggingface.co/jasminejwebb/KeywordIdentifier">https://huggingface.co/jasminejwebb/KeywordIdentifier</a></p>
 
 </div>
 </div>
@@ -18666,14 +18670,46 @@ class="
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<h2 id="Diagnosis">Diagnosis<a class="anchor-link" href="#Diagnosis">&#182;</a></h2><p>When we plot accuracy vs number of features function, we can clearly see that there's a divergence in training and test sets. It's a sign of <strong>overfitting</strong>. In order to prevent it we have to clearly identify why it's happening.
+<h2 id="Discussion">Discussion<a class="anchor-link" href="#Discussion">&#182;</a></h2><p>When we plot accuracy vs number of features function, we can clearly see that there's a divergence in training and test sets. It's a sign of <strong>overfitting</strong>. In order to prevent it we have to clearly identify why it's happening.
 Is it mainly because <strong>large feature size</strong> or mainly because <strong>small N</strong>?
 We have ~ 5k unique users and around 700 unique articles. And we also saw above that there are only 20 users that we can make new predictions on. This is too small for sample size for reaching any conclusions.</p>
-<p>Gradually this number will increase as the new users start interacting with some articles. However, there's a danger lurking around. <em>So far we have only implemented <strong>rank based filtering</strong> for the new users</em>. If we do not add <strong>serendipity layer</strong> to the system to diversify initial recommendations, then it means that we would be *actively pushing users to interact with only limited fragment(top articles) of our data**. This is dangerous because we are creating an echo wall for our users. One can even say, we are not learning from user preferences but rather users are pushed towards sweet-spot of our algorithm.</p>
+<p>if we observe carefully, the accuracy vs number latent features function features make an elbow move somewhere around litte bir more than 100 latent features. To me this is a sign where we have to stop adding more latent features.</p>
+<h2 id="which-one-is-better?">which one is better?<a class="anchor-link" href="#which-one-is-better?">&#182;</a></h2><p>As you may realized, user_to_user_part2 function creates recommendations but we have no metric whether those recommendations are accepted by the user. I don't think this specific function can be offline tested. Remember how it works: It filters out the articles that our user already seen. So we need to silence this criteria and check the intersection between our recommendations and user_articles.</p>
+<p>Let <strong>R</strong> denote our recommendations,</p>
+<p>let <strong>UA</strong> denote articles read by user</p>
+<p>and let <strong>$UA \cap R$</strong> denote the intersection of those two</p>
+<p>then, that would be:</p>
+$$P(\mathbf{UA \cap R}| \mathbf{R})$$<p>However, we are interested in</p>
+$$P(\mathbf{UA \cap R}| do(\mathbf{R}))$$<p>Given that we don't have any individual level data (most probably IBM has), we can't create a Directed Acyclic Graph (DAG) to simulate the intervention of $P(\mathbf{UA \cap R}| do(\mathbf{R}))$. For this reason, I would directly jump into online testing.</p>
+<p>I would make a multivariate testing where users randomly split between</p>
+<ul>
+<li>Test_variation_A, Test_Variation_B, and control groups.</li>
+<li><strong>$H_{0}$</strong> is no significant difference</li>
+<li>Evaluation metric is number of interactions.</li>
+<li>Sample size should be calculated</li>
+<li>Test period should be set with no early stopping.</li>
+<li>Practical significance threshold should be set in advance</li>
+</ul>
 
 </div>
 </div>
 </div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span> 
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
 </div>
 </body>
 
